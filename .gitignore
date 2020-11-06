@@ -1,0 +1,5 @@
+.idea
+.git
+config.yaml
+rendered.html
+vendor/

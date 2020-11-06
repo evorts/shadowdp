@@ -1,0 +1,9 @@
+GET http://localhost:8000/artikel/cara-mengurus-imb-untuk-renovasi-rumah---2117
+Accept: text/html
+
+###
+
+GET http://localhost:8000/
+Accept: text/html
+
+###
