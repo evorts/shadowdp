@@ -6,13 +6,9 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 )
-
-
 
 func chromeDpRender(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("request received with path: %s\n", r.URL.Path)
@@ -29,8 +25,8 @@ func chromeDpRender(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintln(w, "")
 		return
 	}
-	_ = ioutil.WriteFile("rendered.html", []byte(result), os.ModePerm)
-	//_, _ = fmt.Fprintln(w, result)
+	//_ = ioutil.WriteFile("rendered.html", []byte(result), os.ModePerm)
+	_, _ = fmt.Fprintln(w, result)
 }
 
 func enableLifeCycleEvents() chromedp.ActionFunc {

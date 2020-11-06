@@ -9,35 +9,32 @@ import (
 	"github.com/evorts/rod"
 	"github.com/evorts/shadowdp/config"
 	"github.com/go-rod/rod/lib/js"
-	"io/ioutil"
 	"net/http"
-	"os"
+	"strings"
 	"time"
 )
 
 const jsInjection = `
+	// only execute idle callback when supported
 	if ('requestIdleCallback' in window) {
-		// Use requestIdleCallback to schedule work.
 		window.requestIdleCallback(function (e) {
 			document.body.classList.add("page-completed");
 		});
-	} else {
-		// Do what you’d do today.
 	}
 `
 
 func goRodRender(w http.ResponseWriter, r *http.Request) {
-	cfg := r.Context().Value("logger").(config.IManager)
+	cfg := r.Context().Value("cfg").(config.IManager)
 	mapping := cfg.GetMapByHost(r.Host)
 	if mapping == nil {
 		_, _ = fmt.Fprint(w, "")
 		return
 	}
 	browser := rod.New().MustConnect().MustIncognito().MustIgnoreCertErrors(true)
+	// browser.Logger(rod.DefaultLogger).Trace(true)
 	// Even you forget to close, rod will close it after main process ends.
 	defer browser.MustClose()
 	page := browser.MustPage("")
-	//wait := page.WaitRequestIdle(5 * time.Second, []string{}, []string{})
 	wait := page.MustWaitRequestIdle()
 	err := rod.Try(func() {
 		page.
@@ -53,34 +50,43 @@ func goRodRender(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprint(w, "")
 		return
 	}
-	// Convert name and jsArgs to Page.Eval, the name is method name in the "lib/js/helper.js".
-	addScriptTagToBody := func(page *rod.Page, value string) error {
-		hash := md5.Sum([]byte(value))
-		id := hex.EncodeToString(hash[:])
+	// Custom function to add script tag with its content to body
+	addScriptTagToBody := func(p *rod.Page, value string) error {
 		var addScriptHelper = &js.Function{
 			Name:         "addScriptTagToBody",
 			Definition:   `function(e,t,n){if(!document.getElementById(e))return new Promise((i,o)=>{var s=document.createElement("script");t?(s.src=t,s.onload=i):(s.type="text/javascript",s.text=n,i()),s.id=e,s.onerror=o,document.body.appendChild(s)})}`,
 			Dependencies: []*js.Function{},
 		}
-
-		_, err := page.Evaluate(rod.JsHelper(addScriptHelper, id, "", value).ByPromise())
+		hash := md5.Sum([]byte(value))
+		id := hex.EncodeToString(hash[:])
+		_, err := p.Evaluate(rod.JsHelper(addScriptHelper, id, "", value).ByPromise())
 		return err
 	}
+	headElement := page.MustElement("head")
+	// prevent execution of tracking such as google analytics, gtm, or facebook
+	// let's start by scanning the head section
+	for _, s := range headElement.MustElements("script") {
+		if strings.Contains(s.MustHTML(), "googletagmanager.com") {
+			s.MustRemove()
+		}
+	}
+	bodyElement := page.MustElement("body")
+	bodyElement.MustElement("noscript").MustRemove()
 	err = addScriptTagToBody(page, jsInjection)
-	//err = page.AddScriptTag("", jsInjection)
+	//err = page.AddScriptTag("", jsInjection) // this one adding script tag on head section
 	if err != nil {
 		_, _ = fmt.Fprint(w, "")
 		return
 	}
+
 	wait()
-	//bodyElement := page.MustWaitLoad().MustElement("body")
-	bodyElement := page.MustWaitIdle().MustElement("body")
+	page.MustWaitIdle().MustElement("body.page-completed")
 	htmlRootElement, err2 := bodyElement.Parent()
 	if err2 != nil {
 		_, _ = fmt.Fprint(w, "")
 		return
 	}
 	htmlResult := htmlRootElement.MustHTML()
-	_ = ioutil.WriteFile("rendered.html", []byte(htmlResult), os.ModePerm)
+	//_ = ioutil.WriteFile("rendered.html", []byte(htmlResult), os.ModePerm)
 	_, _ = fmt.Fprintln(w, htmlResult)
 }
