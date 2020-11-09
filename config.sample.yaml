@@ -1,0 +1,5 @@
+app:
+  port: 8000
+mappings:
+  - from_host: "localhost:8000"
+    to_base_url: "https://www.mycustomdomain.com"
