@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	dir, _ := os.Getwd()
+	var dir string
+	if dir = os.Getenv("SHADOWDP_CONFIG_DIR"); len(dir) < 1 {
+		dir, _ = os.Getwd()
+	}
 	cfg, err := config.NewConfig(dir, "config.main.yaml", "config.yaml").Initiate()
 	if err != nil {
 		log.Fatal("error reading configuration")
