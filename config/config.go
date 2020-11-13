@@ -11,6 +11,10 @@ import (
 
 type App struct {
 	Port int `yaml:"port"`
+	RemoteCdp struct{
+		Enabled bool `yaml:"enabled"`
+		Address string `yaml:"address"`
+	} `yaml:"remote_cdp"`
 }
 
 type Mapping struct {

@@ -1,5 +1,8 @@
 app:
   port: 8000
+  remote_cdp:
+    enabled: true
+    address: ""
 mappings:
   - from_host: "localhost:8000"
     to_base_url: "https://www.mycustomdomain.com"
