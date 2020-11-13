@@ -24,34 +24,64 @@ const jsInjection = `
 	}
 `
 
-func goRodRender(w http.ResponseWriter, r *http.Request) {
-	cfg := r.Context().Value("cfg").(config.IManager)
-	mapping := cfg.GetMapByHost(r.Host)
-	if mapping == nil {
-		_, _ = fmt.Fprint(w, "")
-		return
+type manager struct {
+	RemoteEnabled bool
+	RemoteAddress string
+	Browser       *rod.Browser
+	Launcher      *launcher.Launcher
+}
+
+type IManager interface {
+	Initiate() IManager
+	GetBrowser() *rod.Browser
+	GetLauncher() *launcher.Launcher
+}
+
+func NewBrowser(remoteEnabled bool, remoteAddress string) IManager {
+	return &manager{
+		RemoteEnabled: remoteEnabled,
+		RemoteAddress: remoteAddress,
 	}
-	var (
-		l       *launcher.Launcher
-		browser = rod.New()
-	)
-	if cfg.GetConfig().App.RemoteCdp.Enabled {
+}
+
+func (m *manager) GetBrowser() *rod.Browser {
+	return m.Browser
+}
+
+func (m *manager) GetLauncher() *launcher.Launcher {
+	return m.Launcher
+}
+
+func (m *manager) Initiate() IManager {
+	m.Browser = rod.New()
+	if m.RemoteEnabled {
 		// To launch remote browsers, you need a remote launcher service,
 		// Rod provides a docker image for beginners, make sure have started:
 		// docker run -p 9222:9222 rodorg/rod
 		//
 		// For more information, check the doc of launcher.RemoteLauncher
-		l = launcher.MustNewRemote(cfg.GetConfig().App.RemoteCdp.Address)
+		m.Launcher = launcher.MustNewRemote(m.RemoteAddress)
 		// Manipulate flags
 		// l.Set("any-flag").Delete("any-flag")
-		fmt.Println(l.MustLaunch())
-		browser = browser.Client(l.Client())
+		fmt.Println(m.Launcher.MustLaunch())
+		m.Browser = m.Browser.Client(m.Launcher.Client())
 	}
-	browser = browser.MustConnect().MustIncognito().MustIgnoreCertErrors(true)
-	// browser.Logger(rod.DefaultLogger).Trace(true)
+	m.Browser = m.Browser.MustConnect().MustIncognito().MustIgnoreCertErrors(true)
 	// Even you forget to close, rod will close it after main process ends.
-	defer browser.MustClose()
-	page := browser.MustPage("")
+	// defer m.Browser.MustClose()
+	return m
+}
+
+func goRodRender(w http.ResponseWriter, r *http.Request) {
+	cfg := r.Context().Value("cfg").(config.IManager)
+	cdp := r.Context().Value("cdp").(IManager)
+	mapping := cfg.GetMapByHost(r.Host)
+	if mapping == nil {
+		_, _ = fmt.Fprint(w, "")
+		return
+	}
+	// browser.Logger(rod.DefaultLogger).Trace(true)
+	page := cdp.GetBrowser().MustPage("")
 	wait := page.MustWaitRequestIdle()
 	err := rod.Try(func() {
 		page.

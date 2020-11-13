@@ -18,6 +18,7 @@ func main() {
 		log.Fatal("error reading configuration")
 		return
 	}
+	cdp := NewBrowser(cfg.GetConfig().App.RemoteCdp.Enabled, cfg.GetConfig().App.RemoteCdp.Address).Initiate()
 	o := http.NewServeMux()
 	o.Handle("/", WithMethodFilter(
 		http.MethodGet,
@@ -25,6 +26,7 @@ func main() {
 			http.HandlerFunc(goRodRender),
 			map[string]interface{}{
 				"cfg": cfg,
+				"cdp": cdp,
 			},
 		),
 	))
