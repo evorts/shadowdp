@@ -121,7 +121,7 @@ func goRodRender(w http.ResponseWriter, r *http.Request) {
 	bodyElement := page.MustElement("body")
 	bodyElement.MustElement("noscript").MustRemove()
 	err = addScriptTagToBody(page, jsInjection)
-	err = page.AddScriptTag("", jsInjection) // this one adding script tag on head section
+	//err = page.AddScriptTag("", jsInjection) // this one adding script tag on head section
 	if err != nil {
 		_, _ = fmt.Fprint(w, "")
 		return
