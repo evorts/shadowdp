@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/evorts/rod"
 	"github.com/evorts/shadowdp/config"
+	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/js"
 	"github.com/go-rod/rod/lib/launcher"
 	"net/http"
@@ -106,7 +106,8 @@ func goRodRender(w http.ResponseWriter, r *http.Request) {
 		}
 		hash := md5.Sum([]byte(value))
 		id := hex.EncodeToString(hash[:])
-		_, err := p.Evaluate(rod.JsHelper(addScriptHelper, id, "", value).ByPromise())
+		script := rod.EvalHelper(addScriptHelper, id, "", value)
+		_, err := p.Evaluate(script.ByPromise())
 		return err
 	}
 	headElement := page.MustElement("head")
@@ -120,7 +121,7 @@ func goRodRender(w http.ResponseWriter, r *http.Request) {
 	bodyElement := page.MustElement("body")
 	bodyElement.MustElement("noscript").MustRemove()
 	err = addScriptTagToBody(page, jsInjection)
-	//err = page.AddScriptTag("", jsInjection) // this one adding script tag on head section
+	err = page.AddScriptTag("", jsInjection) // this one adding script tag on head section
 	if err != nil {
 		_, _ = fmt.Fprint(w, "")
 		return
