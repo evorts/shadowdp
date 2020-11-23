@@ -1,0 +1,19 @@
+version: '3'
+services:
+  browserless:
+    image: browserless/chrome:latest
+    container_name: browserless
+    restart: always
+    environment:
+      CONNECTION_TIMEOUT: 180000
+      DEFAULT_IGNORE_HTTPS_ERRORS: "true"
+      DEFAULT_LAUNCH_ARGS: "[\"--disable-web-security\"]"
+      DISABLED_FEATURES: "[\"pdfEndpoint\", \"contentEndpoint\"]"
+      ENABLE_CORS: "true"
+      ENABLE_DEBUGGER: "true"
+      EXIT_ON_HEALTH_FAILURE: "true"
+      MAX_CONCURRENT_SESSIONS: 1
+      MAX_QUEUE_LENGTH: 1
+      PREBOOT_CHROME: "true"
+    ports:
+      - 3000:3000
